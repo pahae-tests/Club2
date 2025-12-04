@@ -14,8 +14,9 @@ export default function MyApp({ Component, pageProps }) {
 
     return (
         <div className='w-full h-screen'>
-            {router.pathname !== "/test" && <Header isDark={isDark} setIsDark={setIsDark} />}
+            {router.pathname !== "/" && <Header isDark={isDark} setIsDark={setIsDark} />}
             <Component {...pageProps} isDark={isDark} />
         </div>
     );
+
 }
