@@ -1,442 +1,930 @@
-import { useState, useEffect, useRef } from 'react';
-import { Users, Plus, Edit2, Trash2, Save, X, Shield, Crown, Award, Flag, ChevronDown, ChevronUp } from 'lucide-react';
+package com.example.demo.components;
 
-export default function AdminMembres({ isDark }) {
-  const [mounted, setMounted] = useState(false);
-  const [membres, setMembres] = useState([]);
+import com.example.demo.Params;
+import com.example.demo.Queries;
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.sql.Date;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
+import com.example.demo.hooks.MainDTO;
 
-  useEffect(() => {
-    const fetchMembres = async () => {
-      try {
-        const response = await fetch('/api/membres/get');
-        if (!response.ok) throw new Error("Erreur lors de la récupération des membres");
-        const data = await response.json();
-        setMembres(data);
-      } catch (error) {
-        console.error("Erreur:", error);
-      }
-    };
-    fetchMembres();
-  }, []);
+public class Header extends JPanel {
+    private int theme;
+    private Color bgColor, cardBgColor, textPrimary, textSecondary, accentColor, hoverColor, borderColor, shadowColor;
+    private JButton themeToggleBtn;
+    private String selectedElement = Params.headerSelectedElement;
+    private JPopupMenu notificationPopup;
+    private JPopupMenu aiPopup;
+    private List<Notification> notifications;
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editingMembre, setEditingMembre] = useState(null);
-  const [formData, setFormData] = useState({
-    nom: '',
-    prenom: '',
-    tel: '',
-    email: '',
-    dateN: '',
-    ville: '',
-    points: 0,
-    admin: false,
-    img: ''
-  });
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
+    public Header(List<String> elements, Consumer<String> onClick) {
+        this.theme = Params.theme;
+        initializeColors();
+        notifications = new ArrayList<>();
+        setLayout(new BorderLayout());
+        setBackground(bgColor);
+        setBorder(new EmptyBorder(16, 24, 16, 24));
+        loadNotificationsFromBackend();
+        JPanel leftSection = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+        leftSection.setBackground(bgColor);
+        for (String element : elements) {
+            JButton btn = createModernNavButton(element, onClick);
+            leftSection.add(btn);
+        }
+        add(leftSection, BorderLayout.WEST);
+        JPanel rightSection = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        rightSection.setBackground(bgColor);
+        JButton aiBtn = createAIButton();
+        rightSection.add(aiBtn);
+        JButton notifBtn = createNotificationButton();
+        rightSection.add(notifBtn);
+        themeToggleBtn = createThemeToggleButton(onClick);
+        rightSection.add(themeToggleBtn);
+        add(rightSection, BorderLayout.EAST);
+    }
 
-  useEffect(() => {
-    setMounted(true);
-
-    if (window.localStorage.getItem("session") == null)
-      window.location.href = "./";
-  }, []);
-
-  const handleAddMembre = () => {
-    setFormData({
-      nom: '',
-      prenom: '',
-      tel: '',
-      email: '',
-      dateN: '',
-      ville: '',
-      points: 0,
-      admin: false,
-      img: ''
-    });
-    setImagePreview(null);
-    setShowAddModal(true);
-    setEditingMembre(null);
-  };
-
-  const handleEditMembre = (membre) => {
-    setFormData({ ...membre });
-    setImagePreview(membre.img);
-    setShowAddModal(true);
-    setEditingMembre(membre._id); // Utilisez _id au lieu de id
-  };
-
-  const handleDeleteMembre = async (id) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce membre ?')) {
-      try {
-        const response = await fetch(`/api/membres/delete?id=${id}`, {
-          method: 'DELETE',
+    private void loadNotificationsFromBackend() {
+        CompletableFuture<Map<String, Object>> future = Queries.get(
+                "/api/notif/membre/" + Params.membreID + "/projet/" + Params.projetID);
+        future.thenAccept(response -> {
+            // System.out.println("/api/notif/membre/" + Params.membreID + "/projet/" +
+            // Params.projetID);
+            if (response.containsKey("error")) {
+                System.err.println("Erreur lors de la récupération des notifications: " + response.get("error"));
+                return;
+            }
+            try {
+                List<Map<String, Object>> notifs = (List<Map<String, Object>>) response.get("notifications");
+                notifications.clear();
+                for (Map<String, Object> notif : notifs) {
+                    int id = (int) notif.get("id");
+                    String contenu = (String) notif.get("contenu");
+                    String dateEnvoieStr = (String) notif.get("dateEnvoie");
+                    DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
+                    LocalDateTime dateEnvoie = LocalDateTime.parse(dateEnvoieStr, formatter);
+                    boolean estLue = (boolean) notif.get("estLue");
+                    notifications.add(new Notification(id, contenu, dateEnvoie, estLue));
+                }
+            } catch (Exception e) {
+                System.err.println("Erreur lors du parsing des notifications: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }).exceptionally(e -> {
+            System.err.println("Erreur lors de la récupération des notifications: " + e.getMessage());
+            return null;
         });
-
-        if (!response.ok) throw new Error("Erreur lors de la suppression");
-
-        setMembres(membres.filter(m => m._id !== id));
-      } catch (error) {
-        console.error("Erreur:", error);
-        alert("Erreur lors de la suppression");
-      }
-    }
-  };
-
-  const handleSaveMembre = async () => {
-    if (!formData.nom || !formData.prenom || !formData.email) {
-      alert('Veuillez remplir les champs obligatoires');
-      return;
     }
 
-    try {
-      const url = editingMembre
-        ? `/api/membres/update?id=${editingMembre}`
-        : '/api/membres/add';
-
-      const method = editingMembre ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error("Erreur lors de l'enregistrement");
-
-      const result = await response.json();
-
-      if (editingMembre) {
-        setMembres(membres.map(m => m._id === editingMembre ? { ...formData, _id: editingMembre } : m));
-      } else {
-        setMembres([...membres, result]);
-      }
-
-      setShowAddModal(false);
-    } catch (error) {
-      console.error("Erreur:", error);
-      alert("Erreur lors de l'enregistrement");
-    }
-  };
-
-  const getRankFlag = (index, total) => {
-    if (index === 0 || index === 1 || index === 2) return { color: 'bg-green-500', icon: <Crown className="w-4 h-4" /> };
-    if (index === total - 1 || index === total - 2 || index === total - 3) return { color: 'bg-red-500', icon: <Flag className="w-4 h-4" /> };
-    if (index === 4) return { color: 'bg-blue-500', icon: <Award className="w-4 h-4" /> };
-    return null;
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (!file.type.match('image.*')) {
-      alert('Veuillez sélectionner un fichier image valide.');
-      return;
+    private void initializeColors() {
+        if (theme == 0) { // Light mode
+            bgColor = new Color(250, 251, 252);
+            cardBgColor = Color.WHITE;
+            textPrimary = new Color(15, 23, 42);
+            textSecondary = new Color(100, 116, 139);
+            accentColor = new Color(59, 130, 246);
+            hoverColor = new Color(241, 245, 249);
+            borderColor = new Color(226, 232, 240);
+            shadowColor = new Color(0, 0, 0, 8);
+        } else { // Dark mode
+            bgColor = new Color(0, 0, 0);
+            cardBgColor = new Color(20, 20, 20);
+            textPrimary = new Color(230, 230, 230);
+            textSecondary = new Color(100, 100, 100);
+            accentColor = new Color(0, 120, 215);
+            hoverColor = new Color(51, 65, 85);
+            borderColor = new Color(51, 65, 85);
+            shadowColor = new Color(0, 0, 0, 20);
+        }
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, img: reader.result });
-      setImagePreview(reader.result);
-    };
-    reader.readAsDataURL(file);
-  };
+    private JButton createModernNavButton(String text, Consumer<String> onClick) {
+        JButton btn = new JButton() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                boolean isSelected = text.equals(selectedElement);
+                boolean isHovered = getModel().isRollover();
+                if (isSelected) {
+                    GradientPaint gradient = new GradientPaint(
+                            0, 0, accentColor,
+                            getWidth(), getHeight(), new Color(139, 92, 246));
+                    g2.setPaint(gradient);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                } else if (isHovered) {
+                    g2.setColor(hoverColor);
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                }
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btn.setText(text);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 16, 10, 16));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        Runnable updateColors = () -> {
+            boolean isSelected = text.equals(selectedElement);
+            Color textColor = isSelected ? (theme == 0 ? Color.black : Color.WHITE) : textPrimary;
+            btn.setForeground(textColor);
+        };
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.repaint();
+            }
 
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
-  };
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.repaint();
+            }
+        });
+        btn.addActionListener(e -> {
+            Params.headerSelectedElement = text;
+            selectedElement = text;
+            onClick.accept(text);
+            Container parent = btn.getParent();
+            if (parent != null) {
+                for (Component comp : parent.getComponents()) {
+                    comp.repaint();
+                }
+            }
+        });
+        updateColors.run();
+        return btn;
+    }
 
-  if (!mounted) return null;
+    private JButton createAIButton() {
+        JButton btn = new JButton() {
+            private Image aiImage;
+            {
+                try {
+                    aiImage = ImageIO.read(getClass().getResource("/assets/robot.png"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
 
-  const sortedMembres = [...membres].sort((a, b) => b.points - a.points);
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (aiImage == null)
+                    return;
 
-  return (
-    <div className={`min-h-screen transition-all duration-700 ${isDark
-      ? 'bg-gradient-to-br from-[#0a0a0a] via-[#1a0a2e] to-[#0a0a0a]'
-      : 'bg-gradient-to-br from-[#f4f4f4] via-[#e8e8f5] to-[#f4f4f4]'
-      }`}>
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className={`absolute top-20 left-10 w-96 h-96 rounded-full blur-3xl opacity-20 animate-pulse ${isDark ? 'bg-purple-600' : 'bg-purple-400'
-          }`} style={{ animationDuration: '4s' }}></div>
-        <div className={`absolute bottom-20 right-10 w-96 h-96 rounded-full blur-3xl opacity-20 animate-pulse ${isDark ? 'bg-cyan-600' : 'bg-cyan-400'
-          }`} style={{ animationDuration: '6s' }}></div>
-      </div>
-      <div className="relative z-10 container mx-auto px-4 py-12">
-        <div className="text-center mb-12 mt-20">
-          <div className="inline-block mb-6">
-            <h1 className={`relative text-4xl md:text-6xl font-black tracking-tight ${isDark ? 'text-white' : 'text-gray-900'
-              }`}>
-              <span className="bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 bg-clip-text text-transparent">
-                Gestion des Membres
-              </span>
-            </h1>
-          </div>
-          <p className={`text-lg md:text-xl font-medium ${isDark ? 'text-gray-300' : 'text-gray-700'
-            }`}>
-            <Users className="inline-block w-5 h-5 mr-2" />
-            Club de Cybersécurité Universitaire
-          </p>
-        </div>
-        <div className="max-w-6xl mx-auto">
-          <div className={`rounded-3xl overflow-hidden backdrop-blur-xl ${isDark
-            ? 'bg-black/40 border border-white/10'
-            : 'bg-white/60 border border-gray-200/50'
-            } shadow-2xl`}>
-            <div className="h-1 bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500"></div>
-            <div className={`px-6 py-5 flex justify-between items-center border-b ${isDark ? 'bg-gradient-to-r from-purple-900/30 to-cyan-900/30 border-white/10' : 'bg-gradient-to-r from-purple-100/50 to-cyan-100/50 border-gray-200'
-              }`}>
-              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                Liste des Membres
-              </h2>
-              <button
-                onClick={handleAddMembre}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Ajouter</span>
-              </button>
-            </div>
-            <div className="divide-y divide-white/5">
-              {sortedMembres.map((membre, index) => {
-                const rankFlag = getRankFlag(index, sortedMembres.length);
-                return (
-                  <div key={membre._id} className="p-6" style={{ animation: `fadeIn 0.5s ease-out ${index * 0.1}s both` }}>
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                      <div className="flex-1 flex items-center gap-4">
-                        <div className="relative">
-                          <div className={`w-12 h-12 rounded-full overflow-hidden ring-2 ${membre.admin ? 'ring-purple-400' : isDark ? 'ring-gray-600' : 'ring-gray-300'
-                            }`}>
-                            {membre.img ? (
-                              <img
-                                src={membre.img}
-                                alt={`${membre.prenom} ${membre.nom}`}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className={`w-full h-full flex items-center justify-center text-sm font-bold ${isDark ? 'bg-gradient-to-br from-purple-600 to-cyan-600' : 'bg-gradient-to-br from-purple-400 to-cyan-400'
-                                } text-white`}>
-                                {membre.prenom[0]}{membre.nom[0]}
-                              </div>
-                            )}
-                          </div>
-                          {membre.admin && (
-                            <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-pink-500 to-purple-500 rounded-full flex items-center justify-center">
-                              <Shield className="w-3 h-3 text-white" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                            {membre.prenom} {membre.nom}
-                          </div>
-                          <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                            {membre.email} • {membre.tel} • {membre.ville} • {new Date(membre.dateN).toLocaleDateString('FR-fr')}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full font-bold text-xs ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                          <span className="text-yellow-400">{membre.points} pts</span>
-                          {rankFlag && (
-                            <div className={`p-1 rounded-full ${rankFlag.color}`}>
-                              {rankFlag.icon}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditMembre(membre)}
-                            className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-all"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMembre(membre._id)}
-                            className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className={`rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'
-            }`}>
-            <div className={`sticky top-0 px-6 py-4 border-b flex justify-between items-center ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'
-              } z-10`}>
-              <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                {editingMembre ? 'Modifier le membre' : 'Ajouter un membre'}
-              </h3>
-              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-gray-700/50 rounded-lg transition-all">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Nom *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nom}
-                    onChange={(e) => setFormData({ ...formData, nom: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Prénom *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.prenom}
-                    onChange={(e) => setFormData({ ...formData, prenom: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Email *
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                    } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.tel}
-                    onChange={(e) => setFormData({ ...formData, tel: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Ville
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.ville}
-                    onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Date de Naissance
-                  </label>
-                  <input
-                    type="date"
-                    value={new Date(formData.dateN).toISOString().split("T")[0]}
-                    onChange={(e) => setFormData({ ...formData, dateN: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                    Points
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.points}
-                    onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
-                      } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-4">
-                <label className={`inline-flex items-center gap-2 text-sm font-bold ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  <input
-                    type="checkbox"
-                    checked={formData.admin}
-                    onChange={(e) => setFormData({ ...formData, admin: e.target.checked })}
-                    className="h-4 w-4 rounded text-purple-600 focus:ring-purple-500"
-                  />
-                  Bureau ?
-                </label>
-              </div>
-              <div>
-                <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Image de profil
-                </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleImageChange}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <div
-                  onClick={triggerFileInput}
-                  className={`w-full h-32 flex flex-col items-center justify-center rounded-lg border-2 border-dashed cursor-pointer ${isDark ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-300'
-                    } hover:border-purple-500 transition-all`}
-                >
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Aperçu"
-                      className="w-full h-full object-cover rounded-lg"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center p-4">
-                      <Plus className="w-8 h-8 mb-2 text-gray-400" />
-                      <span className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                        Cliquez pour télécharger une image
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className={`sticky bottom-0 px-6 py-4 border-t flex justify-end gap-2 ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'
-              }`}>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className={`px-4 py-2 rounded-lg font-bold transition-all ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'
-                  }`}
-              >
-                Annuler
-              </button>
-              <button
-                onClick={handleSaveMembre}
-                className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
-              >
-                Enregistrer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+                int size = 34;
+                int x = (getWidth() - size) / 2;
+                int y = (getHeight() - size) / 2;
+
+                g2.drawImage(aiImage, x, y, size, size, null);
+                g2.dispose();
+            }
+        };
+
+        btn.setPreferredSize(new Dimension(42, 42));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText("Assistant AI");
+        btn.addActionListener(e -> showAIPopup(btn));
+
+        return btn;
+    }
+
+    private void showAIPopup(JButton btn) {
+        aiPopup = new JPopupMenu() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(cardBgColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+            }
+        };
+        aiPopup.setBackground(cardBgColor);
+        aiPopup.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
+        mainPanel.setBackground(cardBgColor);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+
+        // Header
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(cardBgColor);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
+        JLabel titleLabel = new JLabel("Assistant AI");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(textPrimary);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        mainPanel.add(headerPanel, BorderLayout.NORTH);
+
+        // Chat Panel
+        JPanel chatPanel = new JPanel();
+        chatPanel.setLayout(new BoxLayout(chatPanel, BoxLayout.Y_AXIS));
+        chatPanel.setBackground(cardBgColor);
+
+        JScrollPane scrollPane = new JScrollPane(chatPanel);
+        scrollPane.setBackground(cardBgColor);
+        scrollPane.setBorder(BorderFactory.createLineBorder(borderColor, 1));
+        scrollPane.setPreferredSize(new Dimension(400, 200));
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+
+        // Message initial (AI - aligné à gauche)
+        JPanel initialMessagePanel = createMessageBubble(
+                "Bonjour ! je suis votre assistant AI, comment puis-je vous aider aujourd'hui ?", true);
+        chatPanel.add(initialMessagePanel);
+        chatPanel.add(Box.createVerticalStrut(8));
+
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Input Panel
+        JPanel inputPanel = new JPanel(new BorderLayout(8, 0));
+        inputPanel.setBackground(cardBgColor);
+        inputPanel.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
+
+        JTextField inputField = new JTextField();
+        inputField.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        inputField.setBackground(theme == 0 ? new Color(248, 250, 252) : new Color(30, 30, 30));
+        inputField.setForeground(textPrimary);
+        inputField.setCaretColor(textPrimary);
+        inputField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+
+        JButton sendBtn = new JButton("Envoyer") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Gradient mauve
+                Color color1 = new Color(147, 51, 234); // Purple
+                Color color2 = new Color(219, 39, 119); // Pink
+
+                if (getModel().isPressed()) {
+                    color1 = color1.darker();
+                    color2 = color2.darker();
+                } else if (getModel().isRollover()) {
+                    color1 = color1.brighter();
+                    color2 = color2.brighter();
+                }
+
+                GradientPaint gradient = new GradientPaint(0, 0, color1, getWidth(), 0, color2);
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        sendBtn.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        sendBtn.setForeground(Color.WHITE);
+        sendBtn.setPreferredSize(new Dimension(100, 38));
+        sendBtn.setOpaque(false);
+        sendBtn.setContentAreaFilled(false);
+        sendBtn.setBorderPainted(false);
+        sendBtn.setFocusPainted(false);
+        sendBtn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        ActionListener sendAction = e -> {
+            String userInput = inputField.getText().trim();
+            if (userInput.isEmpty()) {
+                return;
+            }
+            inputField.setText("");
+            inputField.setEnabled(false);
+            sendBtn.setEnabled(false);
+
+            // Supprimer tous les messages sauf le message d'accueil
+            Component[] components = chatPanel.getComponents();
+            for (Component component : components) {
+                if (!(component instanceof Box.Filler)) {
+                    chatPanel.remove(component);
+                }
+            }
+
+            // Ajouter le nouveau message utilisateur (aligné à droite)
+            JPanel userMessagePanel = createMessageBubble(userInput, false);
+            chatPanel.add(userMessagePanel);
+            chatPanel.add(Box.createVerticalStrut(8));
+
+            // Ajouter le message de chargement
+            JPanel loadingPanel = createLoadingBubble();
+            chatPanel.add(loadingPanel);
+
+            chatPanel.revalidate();
+            chatPanel.repaint();
+            scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum());
+
+            // Appel à l'API
+            try {
+                // Récupérer les données du projet depuis l'API backend
+                CompletableFuture<Map<String, Object>> projectDataFuture = Queries.get("/api/all/" + Params.projetID);
+
+                projectDataFuture.thenAccept(projectData -> {
+                    // Vérifier s'il y a une erreur
+                    if (projectData.containsKey("error")) {
+                        SwingUtilities.invokeLater(() -> {
+                            chatPanel.remove(loadingPanel);
+                            JPanel errorPanel = createMessageBubble(
+                                    "Erreur: Impossible de récupérer les données du projet", true);
+                            chatPanel.add(errorPanel);
+                            chatPanel.add(Box.createVerticalStrut(8));
+                            chatPanel.revalidate();
+                            chatPanel.repaint();
+                            scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum());
+                            inputField.setEnabled(true);
+                            sendBtn.setEnabled(true);
+                            inputField.requestFocus();
+                        });
+                        return;
+                    }
+
+                    try {
+                        // Convertir les données du projet en JSON string
+                        String projectDataJson = convertMapToJson(projectData);
+
+                        // Encoder les données pour l'URL
+                        String encodedData = URLEncoder.encode(projectDataJson, "UTF-8");
+                        String formattingType = ". REMARQUE TRES IMPORTANTE : ta réponse doit être sous forme d'un div html, pour le styling utilise uniquement l'attribut style, utilise différentes épaisseurs de textes (semi gras et mince) et couleurs (noires, grise et verte claire), mais seule taille de texte. Ne fais pas de design compliqué, juste un titre coloré et gras avec du texte en noire (gris pour les infors supplémentaires s'il y en a) pour chaque paragraphe, pas de cadres ni mises en pages demandés";
+                        String encodedPrompt = URLEncoder.encode(userInput + formattingType, "UTF-8");
+                        String apiUrl = "https://pahae-utils.vercel.app/api/responseAI?data=" + encodedData + "&prompt="
+                                + encodedPrompt;
+
+                        HttpClient httpClient = HttpClient.newHttpClient();
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(apiUrl))
+                                .GET()
+                                .build();
+
+                        httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                                .thenApply(HttpResponse::body)
+                                .thenAccept(responseBody -> {
+                                    SwingUtilities.invokeLater(() -> {
+                                        chatPanel.remove(loadingPanel);
+                                        String aiResponse;
+                                        if (responseBody.contains("\"error\"")) {
+                                            aiResponse = "Erreur: " + responseBody;
+                                        } else {
+                                            System.out.println(responseBody);
+                                            aiResponse = responseBody.contains("\"response\"")
+                                                    ? responseBody.split("\"response\":\"")[1]
+                                                    : "Désolé, je n'ai pas pu obtenir une réponse.";
+                                            aiResponse = format(aiResponse);
+                                        }
+                                        // Ajouter uniquement la dernière réponse de l'AI (aligné à gauche)
+                                        JPanel aiMessagePanel = createMessageBubble(aiResponse, true);
+                                        chatPanel.add(aiMessagePanel);
+                                        chatPanel.add(Box.createVerticalStrut(8));
+                                        chatPanel.revalidate();
+                                        chatPanel.repaint();
+                                        scrollPane.getVerticalScrollBar()
+                                                .setValue(scrollPane.getVerticalScrollBar().getMaximum());
+                                        inputField.setEnabled(true);
+                                        sendBtn.setEnabled(true);
+                                        inputField.requestFocus();
+                                    });
+                                })
+                                .exceptionally(ex -> {
+                                    SwingUtilities.invokeLater(() -> {
+                                        chatPanel.remove(loadingPanel);
+                                        JPanel errorPanel = createMessageBubble("Erreur: " + ex.getMessage(), true);
+                                        chatPanel.add(errorPanel);
+                                        chatPanel.add(Box.createVerticalStrut(8));
+                                        chatPanel.revalidate();
+                                        chatPanel.repaint();
+                                        scrollPane.getVerticalScrollBar()
+                                                .setValue(scrollPane.getVerticalScrollBar().getMaximum());
+                                        inputField.setEnabled(true);
+                                        sendBtn.setEnabled(true);
+                                        inputField.requestFocus();
+                                    });
+                                    return null;
+                                });
+                    } catch (UnsupportedEncodingException ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            chatPanel.remove(loadingPanel);
+                            JPanel errorPanel = createMessageBubble("Erreur d'encodage: " + ex.getMessage(), true);
+                            chatPanel.add(errorPanel);
+                            chatPanel.revalidate();
+                            chatPanel.repaint();
+                            inputField.setEnabled(true);
+                            sendBtn.setEnabled(true);
+                        });
+                    }
+                }).exceptionally(ex -> {
+                    SwingUtilities.invokeLater(() -> {
+                        chatPanel.remove(loadingPanel);
+                        JPanel errorPanel = createMessageBubble(
+                                "Erreur lors de la récupération des données: " + ex.getMessage(), true);
+                        chatPanel.add(errorPanel);
+                        chatPanel.add(Box.createVerticalStrut(8));
+                        chatPanel.revalidate();
+                        chatPanel.repaint();
+                        scrollPane.getVerticalScrollBar().setValue(scrollPane.getVerticalScrollBar().getMaximum());
+                        inputField.setEnabled(true);
+                        sendBtn.setEnabled(true);
+                        inputField.requestFocus();
+                    });
+                    return null;
+                });
+            } catch (Exception ex) {
+                chatPanel.remove(loadingPanel);
+                JPanel errorPanel = createMessageBubble("Erreur: " + ex.getMessage(), true);
+                chatPanel.add(errorPanel);
+                chatPanel.revalidate();
+                chatPanel.repaint();
+                inputField.setEnabled(true);
+                sendBtn.setEnabled(true);
+            }
+        };
+
+        sendBtn.addActionListener(sendAction);
+        inputField.addActionListener(sendAction);
+        inputPanel.add(inputField, BorderLayout.CENTER);
+        inputPanel.add(sendBtn, BorderLayout.EAST);
+        mainPanel.add(inputPanel, BorderLayout.SOUTH);
+        aiPopup.add(mainPanel);
+        aiPopup.setPreferredSize(new Dimension(450, 380));
+        aiPopup.show(btn, -410, btn.getHeight() + 5);
+        inputField.requestFocus();
+
+        AWTEventListener clickListener = new AWTEventListener() {
+            @Override
+            public void eventDispatched(AWTEvent event) {
+                if (event instanceof MouseEvent) {
+                    MouseEvent me = (MouseEvent) event;
+                    if (me.getID() == MouseEvent.MOUSE_PRESSED) {
+                        Component source = me.getComponent();
+                        if (aiPopup != null && aiPopup.isVisible()) {
+                            if (!isDescendant(aiPopup, source) && source != btn) {
+                                aiPopup.setVisible(false);
+                                Toolkit.getDefaultToolkit().removeAWTEventListener(this);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        Toolkit.getDefaultToolkit().addAWTEventListener(clickListener, AWTEvent.MOUSE_EVENT_MASK);
+    }
+
+    private JPanel createMessageBubble(String message, boolean isAI) {
+        JPanel containerPanel = new JPanel();
+        containerPanel.setLayout(new BoxLayout(containerPanel, BoxLayout.X_AXIS));
+        containerPanel.setBackground(cardBgColor);
+        containerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        containerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+
+        JPanel bubble = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (isAI) {
+                    // AI: fond simple
+                    g2.setColor(theme == 0 ? new Color(241, 245, 249) : new Color(45, 45, 45));
+                } else {
+                    // User: gradient mauve
+                    Color color1 = new Color(147, 51, 234);
+                    Color color2 = new Color(219, 39, 119);
+                    GradientPaint gradient = new GradientPaint(0, 0, color1, getWidth(), 0, color2);
+                    g2.setPaint(gradient);
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+
+            @Override
+            public Dimension getMaximumSize() {
+                Dimension pref = getPreferredSize();
+                return new Dimension(280, pref.height);
+            }
+        };
+
+        bubble.setLayout(new BorderLayout());
+        bubble.setOpaque(false);
+        bubble.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+
+        JLabel textLabel = new JLabel(
+                "<html><div style='width: 250px; word-wrap: break-word;'>" + message + "</div></html>");
+        textLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        textLabel.setForeground(isAI ? textPrimary : Color.WHITE);
+
+        bubble.add(textLabel, BorderLayout.CENTER);
+
+        if (isAI) {
+            // AI: aligné à gauche
+            containerPanel.add(bubble);
+            containerPanel.add(Box.createHorizontalGlue());
+        } else {
+            // User: aligné à droite
+            containerPanel.add(Box.createHorizontalGlue());
+            containerPanel.add(bubble);
+        }
+
+        return containerPanel;
+    }
+
+    private JPanel createLoadingBubble() {
+        JPanel containerPanel = new JPanel();
+        containerPanel.setLayout(new BoxLayout(containerPanel, BoxLayout.X_AXIS));
+        containerPanel.setBackground(cardBgColor);
+        containerPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        containerPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+
+        JPanel bubble = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(theme == 0 ? new Color(241, 245, 249) : new Color(45, 45, 45));
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+
+            @Override
+            public Dimension getMaximumSize() {
+                Dimension pref = getPreferredSize();
+                return new Dimension(280, pref.height);
+            }
+        };
+
+        bubble.setLayout(new BorderLayout());
+        bubble.setOpaque(false);
+        bubble.setBorder(BorderFactory.createEmptyBorder(10, 14, 10, 14));
+
+        JLabel loadingLabel = new JLabel("En cours de réflexion...");
+        loadingLabel.setFont(new Font("Segoe UI", Font.ITALIC, 13));
+        loadingLabel.setForeground(textPrimary);
+
+        bubble.add(loadingLabel, BorderLayout.CENTER);
+
+        containerPanel.add(bubble);
+        containerPanel.add(Box.createHorizontalGlue());
+
+        return containerPanel;
+    }
+
+    private String format(String text) {
+        if (text == null || text.isEmpty())
+            return text;
+        text = text.replace("\\n", "");
+        text = text.replaceAll("```html\\s*", "");
+        text = text.replaceAll("```\\s*$", "");
+        text = text.replace("\\\"", "\"");
+        text = text.replace("\\", "");
+        text = text.replaceAll("\\s+", " ").trim();
+        return text;
+    }
+
+    private String convertMapToJson(Map<String, Object> map) {
+        StringBuilder json = new StringBuilder("{");
+        boolean first = true;
+
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            if (!first) {
+                json.append(",");
+            }
+            first = false;
+
+            json.append("\"").append(entry.getKey()).append("\":");
+            json.append(convertObjectToJson(entry.getValue()));
+        }
+
+        json.append("}");
+        return json.toString();
+    }
+
+    private String convertObjectToJson(Object obj) {
+        if (obj == null) {
+            return "null";
+        } else if (obj instanceof String) {
+            return "\"" + ((String) obj).replace("\"", "\\\"").replace("\n", "\\n") + "\"";
+        } else if (obj instanceof Number || obj instanceof Boolean) {
+            return obj.toString();
+        } else if (obj instanceof Map) {
+            return convertMapToJson((Map<String, Object>) obj);
+        } else if (obj instanceof List) {
+            StringBuilder json = new StringBuilder("[");
+            List<?> list = (List<?>) obj;
+            for (int i = 0; i < list.size(); i++) {
+                if (i > 0)
+                    json.append(",");
+                json.append(convertObjectToJson(list.get(i)));
+            }
+            json.append("]");
+            return json.toString();
+        } else {
+            return "\"" + obj.toString().replace("\"", "\\\"") + "\"";
+        }
+    }
+
+    private JButton createNotificationButton() {
+        JButton btn = new JButton() {
+            private Image bellImage;
+            {
+                try {
+                    bellImage = ImageIO.read(getClass().getResource("/assets/bell.png"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                if (bellImage == null)
+                    return;
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int size = 30;
+                int x = (getWidth() - size) / 2;
+                int y = (getHeight() - size) / 2;
+                g2.drawImage(bellImage, x, y, size, size, null);
+                int unreadCount = (int) notifications.stream().filter(n -> !n.estLue).count();
+                if (unreadCount > 0) {
+                    int badgeSize = 12;
+                    int badgeX = getWidth() - badgeSize - 2;
+                    int badgeY = 2;
+                    g2.setColor(new Color(239, 68, 68));
+                    g2.fillOval(badgeX, badgeY, badgeSize, badgeSize);
+                    g2.setColor(Color.WHITE);
+                    g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
+                    String text = unreadCount > 9 ? "9+" : String.valueOf(unreadCount);
+                    FontMetrics fm = g2.getFontMetrics();
+                    int textX = badgeX + (badgeSize - fm.stringWidth(text)) / 2;
+                    int textY = badgeY + ((badgeSize - fm.getHeight()) / 2) + fm.getAscent();
+                    g2.drawString(text, textX, textY);
+                }
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(42, 42));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText("Notifications");
+        btn.addActionListener(e -> showNotificationPopup(btn));
+        return btn;
+    }
+
+    private void showNotificationPopup(JButton btn) {
+        notificationPopup = new JPopupMenu() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(cardBgColor);
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+                g2.dispose();
+            }
+        };
+        notificationPopup.setBackground(cardBgColor);
+        notificationPopup.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                BorderFactory.createEmptyBorder(8, 0, 8, 0)));
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(cardBgColor);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(cardBgColor);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(8, 16, 12, 16));
+        JLabel titleLabel = new JLabel("Notifications");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(textPrimary);
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        int unreadCount = (int) notifications.stream().filter(n -> !n.estLue).count();
+        if (unreadCount > 0) {
+            JLabel countLabel = new JLabel(unreadCount + " non lue" + (unreadCount > 1 ? "s" : ""));
+            countLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            countLabel.setForeground(textSecondary);
+            headerPanel.add(countLabel, BorderLayout.EAST);
+        }
+        mainPanel.add(headerPanel);
+        JSeparator separator = new JSeparator();
+        separator.setForeground(borderColor);
+        mainPanel.add(separator);
+        if (notifications.isEmpty()) {
+            JPanel emptyPanel = new JPanel();
+            emptyPanel.setBackground(cardBgColor);
+            emptyPanel.setBorder(BorderFactory.createEmptyBorder(32, 16, 32, 16));
+            JLabel emptyLabel = new JLabel("Aucune notification");
+            emptyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+            emptyLabel.setForeground(textSecondary);
+            emptyPanel.add(emptyLabel);
+            mainPanel.add(emptyPanel);
+        } else {
+            for (Notification notif : notifications) {
+                mainPanel.add(createNotificationItem(notif));
+            }
+        }
+        notificationPopup.add(mainPanel);
+        notificationPopup.setPreferredSize(new Dimension(360, Math.min(480, notifications.size() * 90 + 80)));
+        notificationPopup.show(btn, -320, btn.getHeight() + 5);
+        AWTEventListener clickListener = new AWTEventListener() {
+            @Override
+            public void eventDispatched(AWTEvent event) {
+                if (event instanceof MouseEvent) {
+                    MouseEvent me = (MouseEvent) event;
+                    if (me.getID() == MouseEvent.MOUSE_PRESSED) {
+                        Component source = me.getComponent();
+                        if (notificationPopup != null && notificationPopup.isVisible()) {
+                            if (!isDescendant(notificationPopup, source) && source != btn) {
+                                notificationPopup.setVisible(false);
+                                Toolkit.getDefaultToolkit().removeAWTEventListener(this);
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        Toolkit.getDefaultToolkit().addAWTEventListener(clickListener, AWTEvent.MOUSE_EVENT_MASK);
+    }
+
+    private JPanel createNotificationItem(Notification notif) {
+        JPanel itemPanel = new JPanel() {
+            private boolean hovered = false;
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (hovered) {
+                    g2.setColor(hoverColor);
+                    g2.fillRoundRect(8, 0, getWidth() - 16, getHeight(), 8, 8);
+                }
+                if (!notif.estLue) {
+                    g2.setColor(accentColor);
+                    g2.fillOval(12, getHeight() / 2 - 3, 6, 6);
+                }
+                g2.dispose();
+            }
+        };
+        itemPanel.setLayout(new BorderLayout(12, 4));
+        itemPanel.setBackground(cardBgColor);
+        itemPanel.setBorder(BorderFactory.createEmptyBorder(12, notif.estLue ? 16 : 24, 12, 16));
+        itemPanel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(cardBgColor);
+        JLabel contentLabel = new JLabel("<html><body style='width: 280px'>" + notif.contenu + "</body></html>");
+        contentLabel.setFont(new Font("Segoe UI", notif.estLue ? Font.PLAIN : Font.BOLD, 13));
+        contentLabel.setForeground(textPrimary);
+        contentPanel.add(contentLabel);
+        contentPanel.add(Box.createVerticalStrut(4));
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd MMM yyyy, HH:mm");
+        JLabel dateLabel = new JLabel(notif.dateEnvoie.format(formatter));
+        dateLabel.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        dateLabel.setForeground(textSecondary);
+        contentPanel.add(dateLabel);
+        itemPanel.add(contentPanel, BorderLayout.CENTER);
+        itemPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                ((JPanel) e.getSource()).putClientProperty("hovered", true);
+                itemPanel.repaint();
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                ((JPanel) e.getSource()).putClientProperty("hovered", false);
+                itemPanel.repaint();
+            }
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                if (!notif.estLue) {
+                    Queries.put("/api/notif/" + notif.id + "/seen", Map.of())
+                            .thenAccept(response -> {
+                                if (!response.containsKey("error")) {
+                                    notif.estLue = true;
+                                    repaint();
+                                }
+                            });
+                }
+                notificationPopup.setVisible(false);
+            }
+        });
+        return itemPanel;
+    }
+
+    private boolean isDescendant(Component parent, Component child) {
+        if (child == null)
+            return false;
+        if (child == parent)
+            return true;
+        return isDescendant(parent, child.getParent());
+    }
+
+    private JButton createThemeToggleButton(Consumer<String> onClick) {
+        JButton btn = new JButton() {
+            private Image moonImage;
+            private Image sunImage;
+            {
+                try {
+                    moonImage = ImageIO.read(getClass().getResource("/assets/moon.png"));
+                    sunImage = ImageIO.read(getClass().getResource("/assets/sun.png"));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+                int size = theme == 0 ? 28 : 30;
+                int x = (getWidth() - size) / 2;
+                int y = (getHeight() - size) / 2;
+                Image image = theme == 0 ? moonImage : sunImage;
+                if (image != null) {
+                    g2.drawImage(image, x, y, size, size, null);
+                }
+                g2.dispose();
+            }
+        };
+        btn.setPreferredSize(new Dimension(42, 42));
+        btn.setOpaque(false);
+        btn.setContentAreaFilled(false);
+        btn.setBorderPainted(false);
+        btn.setFocusPainted(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setToolTipText("Changer de thème");
+        btn.addActionListener(e -> toggleTheme(onClick));
+        return btn;
+    }
+
+    private void toggleTheme(Consumer<String> onClick) {
+        Params.theme = Params.theme == 0 ? 1 : 0;
+        theme = Params.theme;
+        initializeColors();
+        repaint();
+        onClick.accept(selectedElement);
+    }
+
+    public void updateTheme(int newTheme) {
+        this.theme = newTheme;
+        initializeColors();
+        repaint();
+    }
+
+    public void addNotification(String contenu, LocalDateTime dateEnvoie, boolean estLue) {
+        notifications.add(0, new Notification(-1, contenu, dateEnvoie, estLue));
+        repaint();
+    }
+
+    public static class Notification {
+        int id;
+        String contenu;
+        LocalDateTime dateEnvoie;
+        boolean estLue;
+
+        public Notification(int id, String contenu, LocalDateTime dateEnvoie, boolean estLue) {
+            this.id = id;
+            this.contenu = contenu;
+            this.dateEnvoie = dateEnvoie;
+            this.estLue = estLue;
+        }
+    }
 }
