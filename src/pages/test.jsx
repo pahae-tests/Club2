@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-export default function Test() {
+export default function Test() { 
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
 
@@ -90,3 +90,4 @@ export default function Test() {
     </div>
   );
 }
+
