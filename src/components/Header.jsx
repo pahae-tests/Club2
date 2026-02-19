@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Shield, Menu, X, Moon, Sun, LogOut, Trophy, FolderKanban, Newspaper, Users } from 'lucide-react';
+import { Shield, Menu, X, Moon, Sun, LogOut, Trophy, FolderKanban, Newspaper, Users, Shuffle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function Header({ isDark, setIsDark }) {
@@ -27,7 +27,8 @@ export default function Header({ isDark, setIsDark }) {
     { name: 'Classement', path: '/classement', icon: Trophy },
     { name: 'Projets', path: '/projets', icon: FolderKanban },
     { name: 'Actualités', path: '/actualites', icon: Newspaper },
-    { name: 'Membres', path: '/membres', icon: Users }
+    { name: 'Membres', path: '/membres', icon: Users },
+    { name: 'Randomizer', path: '/randomizer', icon: Shuffle },
   ];
 
   if (!mounted) return null;
@@ -172,4 +173,5 @@ export default function Header({ isDark, setIsDark }) {
       `}</style>
     </header>
   );
+
 }
