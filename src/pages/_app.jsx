@@ -16,7 +16,7 @@ export default function MyApp({ Component, pageProps }) {
     return (
         <>
             <Head>
-                <title>Nom de ton site</title>
+                <title>WORMZ</title>
                 <link rel="icon" href="/logo.png" />
                 <link rel="apple-touch-icon" href="/logo.png" />
                 <meta name="theme-color" content="#000000" />
@@ -31,3 +31,4 @@ export default function MyApp({ Component, pageProps }) {
         </>
     );
 }
+
