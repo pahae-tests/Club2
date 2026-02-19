@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Shield, Menu, X, Moon, Sun, LogOut, Trophy, FolderKanban, Newspaper, Users } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Header({ isDark, setIsDark }) {
   const [mounted, setMounted] = useState(false);
@@ -36,8 +37,9 @@ export default function Header({ isDark, setIsDark }) {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="/" className="flex items-center gap-3 group">
-            <div className={`relative w-12 h-12 rounded-xl overflow-hidden ring-2 transition-all duration-300 ${
+          <Link href="/" className="flex items-center gap-3 group">
+            <img src="/logo.png" className="h-26" />
+            {/* <div className={`relative w-12 h-12 rounded-xl overflow-hidden ring-2 transition-all duration-300 ${
               isDark
                 ? 'ring-purple-500/50 group-hover:ring-purple-400'
                 : 'ring-purple-400/50 group-hover:ring-purple-500'
@@ -45,7 +47,7 @@ export default function Header({ isDark, setIsDark }) {
               <div className={`w-full h-full flex items-center justify-center ${
                 isDark ? 'bg-gradient-to-br from-purple-600 to-cyan-600' : 'bg-gradient-to-br from-purple-400 to-cyan-400'
               }`}>
-                <Shield className="w-7 h-7 text-white" />
+                <img src="/logo.png" className="w-full h-full" />
               </div>
             </div>
             <div className="hidden sm:block">
@@ -56,8 +58,8 @@ export default function Header({ isDark, setIsDark }) {
                   WORMZ
                 </span>
               </h1>
-            </div>
-          </a>
+            </div> */}
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
@@ -65,11 +67,10 @@ export default function Header({ isDark, setIsDark }) {
               <a
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                  isDark
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                     ? 'text-gray-300 hover:text-white hover:bg-white/10'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+                  }`}
               >
                 <item.icon className="w-4 h-4" />
                 {item.name}
@@ -82,11 +83,10 @@ export default function Header({ isDark, setIsDark }) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${
-                isDark
+              className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isDark
                   ? 'bg-white/10 hover:bg-white/20 text-yellow-400'
                   : 'bg-gray-100 hover:bg-gray-200 text-purple-600'
-              }`}
+                }`}
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -95,11 +95,10 @@ export default function Header({ isDark, setIsDark }) {
             {/* Logout Button (Desktop) */}
             <button
               onClick={handleLogout}
-              className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                isDark
+              className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-              }`}
+                }`}
             >
               <LogOut className="w-4 h-4" />
               Déconnexion
@@ -108,11 +107,10 @@ export default function Header({ isDark, setIsDark }) {
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${
-                isDark
+              className={`md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isDark
                   ? 'bg-white/10 hover:bg-white/20 text-white'
                   : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
-              }`}
+                }`}
               aria-label="Toggle menu"
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -122,22 +120,19 @@ export default function Header({ isDark, setIsDark }) {
 
         {/* Mobile Menu */}
         <div
-          className={`md:hidden overflow-hidden transition-all duration-500 ${
-            isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
+          className={`md:hidden overflow-hidden transition-all duration-500 ${isMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
         >
-          <nav className={`py-4 space-y-2 border-t ${
-            isDark ? 'border-white/10' : 'border-gray-200/50'
-          }`}>
+          <nav className={`py-4 space-y-2 border-t ${isDark ? 'border-white/10' : 'border-gray-200/50'
+            }`}>
             {navItems.map((item, index) => (
               <a
                 key={item.path}
                 href={item.path}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                  isDark
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                     ? 'text-gray-300 hover:text-white hover:bg-white/10'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
-                }`}
+                  }`}
                 style={{
                   animation: isMenuOpen ? `fadeIn 0.3s ease-out ${index * 0.1}s both` : 'none'
                 }}
@@ -148,11 +143,10 @@ export default function Header({ isDark, setIsDark }) {
             ))}
             <button
               onClick={handleLogout}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                isDark
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-              }`}
+                }`}
               style={{
                 animation: isMenuOpen ? `fadeIn 0.3s ease-out ${navItems.length * 0.1}s both` : 'none'
               }}
