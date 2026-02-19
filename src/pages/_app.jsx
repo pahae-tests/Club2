@@ -17,7 +17,7 @@ export default function MyApp({ Component, pageProps }) {
         <>
             <Head>
                 <title>WORMZ</title>
-                <link rel="icon" href="/logo.png" />
+                <link rel="icon" href="/logo.jpeg" />
                 <link rel="apple-touch-icon" href="/logo.png" />
                 <meta name="theme-color" content="#000000" />
             </Head>
@@ -31,4 +31,5 @@ export default function MyApp({ Component, pageProps }) {
         </>
     );
 }
+
 
