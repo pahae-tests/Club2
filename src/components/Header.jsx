@@ -5,11 +5,14 @@ import Link from 'next/link';
 export default function Header({ isDark, setIsDark }) {
   const [mounted, setMounted] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
     setMounted(true);
     const savedTheme = localStorage.getItem('theme') || 'dark';
     setIsDark(savedTheme === 'dark');
+    if (window.localStorage.getItem("session") != null)
+      setSession(true);
   }, []);
 
   const toggleTheme = () => {
@@ -39,7 +42,7 @@ export default function Header({ isDark, setIsDark }) {
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <img src="/logo.png" className="h-26" />
+            <img src={`${isDark ? '/logo.png' : '/logodark.png'}`} className="h-26" />
             {/* <div className={`relative w-12 h-12 rounded-xl overflow-hidden ring-2 transition-all duration-300 ${
               isDark
                 ? 'ring-purple-500/50 group-hover:ring-purple-400'
@@ -69,8 +72,8 @@ export default function Header({ isDark, setIsDark }) {
                 key={item.path}
                 href={item.path}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
-                    ? 'text-gray-300 hover:text-white hover:bg-white/10'
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'text-gray-300 hover:text-white hover:bg-white/10'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                   }`}
               >
                 <item.icon className="w-4 h-4" />
@@ -85,8 +88,8 @@ export default function Header({ isDark, setIsDark }) {
             <button
               onClick={toggleTheme}
               className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isDark
-                  ? 'bg-white/10 hover:bg-white/20 text-yellow-400'
-                  : 'bg-gray-100 hover:bg-gray-200 text-purple-600'
+                ? 'bg-white/10 hover:bg-white/20 text-yellow-400'
+                : 'bg-gray-100 hover:bg-gray-200 text-purple-600'
                 }`}
               aria-label="Toggle theme"
             >
@@ -94,23 +97,25 @@ export default function Header({ isDark, setIsDark }) {
             </button>
 
             {/* Logout Button (Desktop) */}
-            <button
-              onClick={handleLogout}
-              className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
+            {session &&
+              <button
+                onClick={handleLogout}
+                className={`hidden md:flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                }`}
-            >
-              <LogOut className="w-4 h-4" />
-              Déconnexion
-            </button>
+                  }`}
+              >
+                <LogOut className="w-4 h-4" />
+                Déconnexion
+              </button>
+            }
 
             {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className={`md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 ${isDark
-                  ? 'bg-white/10 hover:bg-white/20 text-white'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
+                ? 'bg-white/10 hover:bg-white/20 text-white'
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                 }`}
               aria-label="Toggle menu"
             >
@@ -131,8 +136,8 @@ export default function Header({ isDark, setIsDark }) {
                 key={item.path}
                 href={item.path}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
-                    ? 'text-gray-300 hover:text-white hover:bg-white/10'
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
+                  ? 'text-gray-300 hover:text-white hover:bg-white/10'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 style={{
                   animation: isMenuOpen ? `fadeIn 0.3s ease-out ${index * 0.1}s both` : 'none'
@@ -142,19 +147,21 @@ export default function Header({ isDark, setIsDark }) {
                 {item.name}
               </a>
             ))}
-            <button
-              onClick={handleLogout}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
+            {session &&
+              <button
+                onClick={handleLogout}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${isDark
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
                   : 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-200'
-                }`}
-              style={{
-                animation: isMenuOpen ? `fadeIn 0.3s ease-out ${navItems.length * 0.1}s both` : 'none'
-              }}
-            >
-              <LogOut className="w-5 h-5" />
-              Déconnexion
-            </button>
+                  }`}
+                style={{
+                  animation: isMenuOpen ? `fadeIn 0.3s ease-out ${navItems.length * 0.1}s both` : 'none'
+                }}
+              >
+                <LogOut className="w-5 h-5" />
+                Déconnexion
+              </button>
+            }
           </nav>
         </div>
       </div>

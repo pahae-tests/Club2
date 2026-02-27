@@ -14,12 +14,13 @@ export default function AdminActualites({ isDark }) {
     heure: '',
     salle: ''
   });
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
     setMounted(true);
 
-    if (window.localStorage.getItem("session") == null)
-      window.location.href = "./";
+    if (window.localStorage.getItem("session") != null)
+      setSession(true);
 
     fetchActualites();
   }, []);
@@ -39,7 +40,7 @@ export default function AdminActualites({ isDark }) {
     setFormData({
       titre: '',
       descr: '',
-      date: '',
+      date: new Date().toISOString().split("T")[0],
       heure: '',
       salle: ''
     });
@@ -147,13 +148,15 @@ export default function AdminActualites({ isDark }) {
               <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                 Historique des Actualités
               </h2>
-              <button
-                onClick={handleAddActualite}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">Ajouter</span>
-              </button>
+              {session &&
+                <button
+                  onClick={handleAddActualite}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="hidden sm:inline">Ajouter</span>
+                </button>
+              }
             </div>
             <div className="divide-y divide-white/5">
               {actualites.map((actualite, index) => (
@@ -186,20 +189,22 @@ export default function AdminActualites({ isDark }) {
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEditActualite(actualite)}
-                        className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-all"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteActualite(actualite._id)}
-                        className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {session &&
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEditActualite(actualite)}
+                          className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteActualite(actualite._id)}
+                          className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    }
                   </div>
                 </div>
               ))}
@@ -253,7 +258,7 @@ export default function AdminActualites({ isDark }) {
                   </label>
                   <input
                     type="date"
-                    value={new Date(formData.date).toISOString().split("T")[0]}
+                    value={formData.date || ''}
                     onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'
                       } border focus:outline-none focus:ring-2 focus:ring-purple-500`}

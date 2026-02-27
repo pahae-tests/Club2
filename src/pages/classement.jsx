@@ -4,6 +4,7 @@ import { Crown, Shield, TrendingUp, TrendingDown, Minus, Phone, Mail, Medal } fr
 export default function AdminRanking({ isDark }) {
   const [mounted, setMounted] = useState(false);
   const [membres, setMembres] = useState([]);
+  const [session, setSession] = useState(null);
 
   useEffect(() => {
     const fetchMembres = async () => {
@@ -23,8 +24,8 @@ export default function AdminRanking({ isDark }) {
   useEffect(() => {
     setMounted(true);
 
-    if (window.localStorage.getItem("session") == null)
-      window.location.href = "./";
+    if (window.localStorage.getItem("session") != null)
+      setSession(true);
   }, []);
 
   if (!mounted) return null;

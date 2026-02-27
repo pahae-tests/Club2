@@ -6,6 +6,7 @@ export default function AdminProjets({ isDark }) {
     const [mounted, setMounted] = useState(false);
     const [projects, setProjects] = useState([]);
     const [currentProject, setCurrentProject] = useState({});
+    const [session, setSession] = useState(null);
 
     useEffect(() => {
         const fetchProjects = async () => {
@@ -23,8 +24,8 @@ export default function AdminProjets({ isDark }) {
 
         fetchProjects();
 
-        if (window.localStorage.getItem("session") == null)
-            window.location.href = "./";
+        if (window.localStorage.getItem("session") != null)
+            setSession(true);
     }, []);
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -302,13 +303,15 @@ export default function AdminProjets({ isDark }) {
                             <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
                                 Historique des Projets
                             </h2>
-                            <button
-                                onClick={handleAddProject}
-                                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
-                            >
-                                <Plus className="w-4 h-4" />
-                                <span className="hidden sm:inline">Ajouter</span>
-                            </button>
+                            {session &&
+                                <button
+                                    onClick={handleAddProject}
+                                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
+                                >
+                                    <Plus className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Ajouter</span>
+                                </button>
+                            }
                         </div>
                         <div className="divide-y divide-white/5">
                             {projects.filter(p => !p.current).map((project, index) => (
@@ -335,18 +338,21 @@ export default function AdminProjets({ isDark }) {
                                             >
                                                 {expandedProject === project._id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                             </button>
-                                            <button
-                                                onClick={() => handleEditProject(project)}
-                                                className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-all"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteProject(project._id)}
-                                                className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {session &&
+                                                <><button
+                                                    onClick={() => handleEditProject(project)}
+                                                    className="p-2 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 transition-all"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                    <button
+                                                        onClick={() => handleDeleteProject(project._id)}
+                                                        className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 transition-all"
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </>
+                                            }
                                         </div>
                                     </div>
                                     {expandedProject === project._id && (
