@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { Users, Plus, Edit2, Trash2, Save, X, Shield, Crown, Award, Flag, ChevronDown, ChevronUp, Search, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react'; 
+import { Users, Plus, Edit2, Trash2, Save, X, Shield, Crown, Award, Flag, ChevronDown, ChevronUp, Search, ArrowUpDown, ArrowUp, ArrowDown, UserCheck, CheckCircle2, Circle } from 'lucide-react';
 
 export default function AdminMembres({ isDark }) {
   const [mounted, setMounted] = useState(false);
@@ -37,6 +37,12 @@ export default function AdminMembres({ isDark }) {
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
   const [session, setSession] = useState(null);
+
+  // Attendance state
+  const [showPresenceModal, setShowPresenceModal] = useState(false);
+  const [presentIds, setPresentIds] = useState(new Set());
+  const [presenceSearchQuery, setPresenceSearchQuery] = useState('');
+  const [presenceSubmitting, setPresenceSubmitting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -132,6 +138,61 @@ export default function AdminMembres({ isDark }) {
       : <ArrowDown className="w-3 h-3 text-purple-400" />;
   };
 
+  // Attendance handlers
+  const handleOpenPresence = () => {
+    setPresentIds(new Set());
+    setPresenceSearchQuery('');
+    setShowPresenceModal(true);
+  };
+
+  const togglePresence = (id) => {
+    setPresentIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setPresentIds(new Set(filteredPresence.map(m => m._id)));
+  };
+
+  const deselectAll = () => {
+    setPresentIds(new Set());
+  };
+
+  const handleSubmitPresence = async () => {
+    const confirmMsg = `${presentIds.size} présent(s) → +1 pt\n${membres.length - presentIds.size} absent(s) → -3 pts\n\nConfirmer ?`;
+    if (!confirm(confirmMsg)) return;
+    setPresenceSubmitting(true);
+    try {
+      const updates = membres.map(m => ({
+        id: m._id,
+        points: Math.max(0, (m.points || 0) + (presentIds.has(m._id) ? 1 : -3))
+      }));
+      // Batch update each member
+      await Promise.all(updates.map(({ id, points }) =>
+        fetch(`/api/membres/update?id=${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ points }),
+        })
+      ));
+      // Update local state
+      setMembres(prev => prev.map(m => {
+        const u = updates.find(u => u.id === m._id);
+        return u ? { ...m, points: u.points } : m;
+      }));
+      setShowPresenceModal(false);
+    } catch (error) {
+      console.error("Erreur:", error);
+      alert("Erreur lors de la mise à jour des points");
+    } finally {
+      setPresenceSubmitting(false);
+    }
+  };
+
   if (!mounted) return null;
 
   // Filter + sort
@@ -164,6 +225,18 @@ export default function AdminMembres({ isDark }) {
       }
       return direction === 'asc' ? valA - valB : valB - valA;
     });
+
+  // Filtered presence list
+  const filteredPresence = membres.filter(m => {
+    const q = presenceSearchQuery.toLowerCase();
+    return (
+      !q ||
+      m.nom?.toLowerCase().includes(q) ||
+      m.prenom?.toLowerCase().includes(q) ||
+      `${m.prenom} ${m.nom}`.toLowerCase().includes(q) ||
+      `${m.nom} ${m.prenom}`.toLowerCase().includes(q)
+    );
+  });
 
   const sortButtons = [
     { key: 'points', label: 'Points' },
@@ -213,13 +286,26 @@ export default function AdminMembres({ isDark }) {
                   </span>
                 </h2>
                 {session &&
-                  <button
-                    onClick={handleAddMembre}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span className="hidden sm:inline">Ajouter</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {/* Attendance button */}
+                    <button
+                      onClick={handleOpenPresence}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-all border ${isDark
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30 hover:border-emerald-400'
+                        : 'bg-emerald-50 border-emerald-300 text-emerald-700 hover:bg-emerald-100'
+                      }`}
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      <span className="hidden sm:inline">Présence</span>
+                    </button>
+                    <button
+                      onClick={handleAddMembre}
+                      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="hidden sm:inline">Ajouter</span>
+                    </button>
+                  </div>
                 }
               </div>
 
@@ -301,7 +387,6 @@ export default function AdminMembres({ isDark }) {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className={`text-lg font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                              {/* Highlight search match */}
                               {searchQuery
                                 ? (() => {
                                     const fullName = `${membre.prenom} ${membre.nom}`;
@@ -356,6 +441,7 @@ export default function AdminMembres({ isDark }) {
         </div>
       </div>
 
+      {/* Add/Edit Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className={`rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
@@ -442,6 +528,172 @@ export default function AdminMembres({ isDark }) {
                 className="px-4 py-2 rounded-lg bg-gradient-to-r from-pink-600 via-purple-500 to-cyan-500 hover:from-pink-700 hover:via-purple-600 hover:to-cyan-600 text-white font-bold transition-all">
                 Enregistrer
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Presence Modal */}
+      {showPresenceModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className={`rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
+            {/* Modal header */}
+            <div className={`px-6 py-4 border-b flex justify-between items-center ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'}`}>
+              <div>
+                <h3 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                  <UserCheck className="inline-block w-5 h-5 mr-2 text-emerald-400" />
+                  Marquer la présence
+                </h3>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Présent : <span className="text-emerald-400 font-bold">+1 pt</span> &nbsp;|&nbsp; Absent : <span className="text-red-400 font-bold">−3 pts</span>
+                </p>
+              </div>
+              <button onClick={() => setShowPresenceModal(false)} className="p-2 hover:bg-gray-700/50 rounded-lg transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Search + select all */}
+            <div className={`px-6 py-3 border-b ${isDark ? 'border-white/10' : 'border-gray-100'}`}>
+              <div className="relative mb-3">
+                <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isDark ? 'text-gray-400' : 'text-gray-500'}`} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un membre..."
+                  value={presenceSearchQuery}
+                  onChange={e => setPresenceSearchQuery(e.target.value)}
+                  className={`w-full pl-10 pr-4 py-2 rounded-xl text-sm font-medium border focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all ${isDark
+                    ? 'bg-white/5 border-white/10 text-white placeholder-gray-500'
+                    : 'bg-gray-50 border-gray-200 text-gray-900 placeholder-gray-400'
+                  }`}
+                />
+                {presenceSearchQuery && (
+                  <button
+                    onClick={() => setPresenceSearchQuery('')}
+                    className={`absolute right-3 top-1/2 -translate-y-1/2 ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-400 hover:text-gray-700'}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs font-semibold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                  {presentIds.size} / {membres.length} présent(s)
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={selectAll}
+                    className={`text-xs px-3 py-1 rounded-lg font-bold transition-all ${isDark ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'}`}
+                  >
+                    Tout sélectionner
+                  </button>
+                  <button
+                    onClick={deselectAll}
+                    className={`text-xs px-3 py-1 rounded-lg font-bold transition-all ${isDark ? 'bg-white/5 text-gray-400 hover:bg-white/10' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    Tout désélectionner
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Members list */}
+            <div className="overflow-y-auto flex-1 divide-y divide-white/5">
+              {filteredPresence.length === 0 ? (
+                <div className={`p-8 text-center ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                  <p className="font-medium">Aucun membre trouvé</p>
+                </div>
+              ) : (
+                filteredPresence.map(membre => {
+                  const isPresent = presentIds.has(membre._id);
+                  return (
+                    <button
+                      key={membre._id}
+                      onClick={() => togglePresence(membre._id)}
+                      className={`w-full flex items-center gap-4 px-6 py-3 text-left transition-all ${
+                        isPresent
+                          ? isDark
+                            ? 'bg-emerald-500/10 hover:bg-emerald-500/15'
+                            : 'bg-emerald-50 hover:bg-emerald-100/80'
+                          : isDark
+                            ? 'hover:bg-white/5'
+                            : 'hover:bg-gray-50'
+                      }`}
+                    >
+                      {/* Checkbox icon */}
+                      <div className={`flex-shrink-0 transition-colors ${isPresent ? 'text-emerald-400' : isDark ? 'text-gray-600' : 'text-gray-300'}`}>
+                        {isPresent
+                          ? <CheckCircle2 className="w-5 h-5" />
+                          : <Circle className="w-5 h-5" />
+                        }
+                      </div>
+
+                      {/* Avatar */}
+                      <div className={`w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ${isPresent ? 'ring-emerald-400' : isDark ? 'ring-gray-700' : 'ring-gray-200'}`}>
+                        {membre.img ? (
+                          <img src={membre.img} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className={`w-full h-full flex items-center justify-center text-xs font-bold ${isDark ? 'bg-gradient-to-br from-purple-600 to-cyan-600' : 'bg-gradient-to-br from-purple-400 to-cyan-400'} text-white`}>
+                            {membre.prenom[0]}{membre.nom[0]}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Name & info */}
+                      <div className="flex-1 min-w-0">
+                        <div className={`font-bold text-sm ${isPresent ? 'text-emerald-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
+                          {membre.prenom} {membre.nom}
+                        </div>
+                        <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{membre.ville}</div>
+                      </div>
+
+                      {/* Points + badge */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-xs font-bold ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{membre.points} pts</span>
+                        {isPresent ? (
+                          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">Présent</span>
+                        ) : (
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isDark ? 'text-gray-500 bg-white/5' : 'text-gray-400 bg-gray-100'}`}>Absent</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className={`px-6 py-4 border-t flex justify-between items-center gap-3 ${isDark ? 'bg-gray-900 border-white/10' : 'bg-white border-gray-200'}`}>
+              <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+                <span className="text-emerald-400 font-bold">{presentIds.size} présent(s)</span>
+                {' · '}
+                <span className="text-red-400 font-bold">{membres.length - presentIds.size} absent(s)</span>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPresenceModal(false)}
+                  className={`px-4 py-2 rounded-lg font-bold transition-all ${isDark ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-200 hover:bg-gray-300'}`}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSubmitPresence}
+                  disabled={presenceSubmitting}
+                  className="px-4 py-2 rounded-lg bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {presenceSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Enregistrer
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
