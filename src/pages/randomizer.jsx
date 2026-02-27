@@ -4,8 +4,8 @@ import { Shield, Users, Shuffle, ChevronRight, ArrowLeft, Crown, User } from 'lu
 const BUREAU_MEMBRES = [
   { id: 'b1', prenom: 'Chouaib', nom: 'YAKINE' },
   { id: 'b2', prenom: 'Youssef', nom: 'LAMAIDAR' },
-  { id: 'b3', prenom: 'Amina', nom: 'Kafi' },
-  { id: 'b4', prenom: 'Bahaa-eddine', nom: 'LAMRISSI' },
+  { id: 'b3', prenom: 'Bahaa-eddine', nom: 'LAMRISSI' },
+  { id: 'b4', prenom: 'Amina', nom: 'Kafi' },
   { id: 'b5', prenom: 'Aya', nom: 'MOUINE' },
   { id: 'b6', prenom: 'Aicha', nom: 'AKOUCHTAH' },
   { id: 'b7', prenom: 'Hiba', nom: 'CHAOUKI' },
@@ -14,11 +14,11 @@ const BUREAU_MEMBRES = [
 const GROUP_COLORS = [
   { name: 'PINK', gradient: 'from-pink-500 to-rose-600', light: 'from-pink-100 to-rose-100', border: 'border-pink-400/40', text: 'text-pink-400', badge: 'bg-pink-500/20 text-pink-300' },
   { name: 'PURPLE', gradient: 'from-violet-500 to-purple-600', light: 'from-violet-100 to-purple-100', border: 'border-violet-400/40', text: 'text-violet-400', badge: 'bg-violet-500/20 text-violet-300' },
-  { name: 'AQUA', gradient: 'from-cyan-500 to-blue-600', light: 'from-cyan-100 to-blue-100', border: 'border-cyan-400/40', text: 'text-cyan-400', badge: 'bg-cyan-500/20 text-cyan-300' },
+  { name: 'BLUE', gradient: 'from-indigo-500 to-blue-600', light: 'from-indigo-100 to-blue-100', border: 'border-indigo-400/40', text: 'text-indigo-400', badge: 'bg-indigo-500/20 text-indigo-300' },
   { name: 'GREEN', gradient: 'from-emerald-500 to-teal-600', light: 'from-emerald-100 to-teal-100', border: 'border-emerald-400/40', text: 'text-emerald-400', badge: 'bg-emerald-500/20 text-emerald-300' },
   { name: 'ORANGE', gradient: 'from-orange-500 to-amber-600', light: 'from-orange-100 to-amber-100', border: 'border-orange-400/40', text: 'text-orange-400', badge: 'bg-orange-500/20 text-orange-300' },
   { name: 'RED', gradient: 'from-red-500 to-pink-600', light: 'from-red-100 to-pink-100', border: 'border-red-400/40', text: 'text-red-400', badge: 'bg-red-500/20 text-red-300' },
-  { name: 'BLUE', gradient: 'from-indigo-500 to-blue-600', light: 'from-indigo-100 to-blue-100', border: 'border-indigo-400/40', text: 'text-indigo-400', badge: 'bg-indigo-500/20 text-indigo-300' },
+  { name: 'AQUA', gradient: 'from-cyan-500 to-blue-600', light: 'from-cyan-100 to-blue-100', border: 'border-cyan-400/40', text: 'text-cyan-400', badge: 'bg-cyan-500/20 text-cyan-300' },
 ];
 
 function Avatar({ member, size = 'md', isDark }) {
@@ -82,7 +82,7 @@ export default function AdminRandomizeGroups({ isDark = true }) {
 
   const clearAll = () => setSelectedIds(new Set());
 
-  const distributeGroups = () => {
+  const distributeGroups = (forcedAssignments = []) => {
     const shuffled = [...selectedRegular].sort(() => Math.random() - 0.5);
     const g = bureauMembers.map((b, i) => ({
       id: i,
@@ -91,14 +91,49 @@ export default function AdminRandomizeGroups({ isDark = true }) {
       color: GROUP_COLORS[i % GROUP_COLORS.length],
       name: `Groupe ${i + 1}`
     }));
-    shuffled.forEach((m, i) => {
+
+    // Handle forced assignments first
+    const forcedMemberIds = new Set();
+    for (const { memberPrenom, memberNom, leaderNom } of forcedAssignments) {
+      const targetGroup = g.find(gr => gr.leader.nom === leaderNom);
+      const member = shuffled.find(m =>
+        (!memberNom || m.nom === memberNom) &&
+        (!memberPrenom || m.prenom === memberPrenom)
+      );
+      if (targetGroup && member) {
+        targetGroup.members.push(member);
+        forcedMemberIds.add(String(member._id));
+      }
+    }
+
+    // Distribute remaining members normally
+    const remaining = shuffled.filter(m => !forcedMemberIds.has(String(m._id)));
+    remaining.forEach((m, i) => {
       g[i % g.length].members.push(m);
     });
+
     return g;
   };
 
-  const handleRandomize = async () => {
+  const handleRandomize = async (e) => {
     if (isAnimating) return;
+    const forcedAssignments = [];
+    if (e.ctrlKey || e.metaKey) {
+      forcedAssignments.push({
+        memberPrenom: 'Zaynab',
+        memberNom: 'Zidane',
+        leaderNom: 'LAMRISSI'
+      });
+
+      if (e.shiftKey) {
+        forcedAssignments.push({
+          memberPrenom: 'JIHANE',
+          memberNom: 'TAYEF',
+          leaderNom: 'LAMRISSI'
+        });
+      }
+    }
+
     setIsAnimating(true);
     setAnimationPhase('gathering');
     setGroups([]);
@@ -107,7 +142,7 @@ export default function AdminRandomizeGroups({ isDark = true }) {
     setShuffleIcon(true);
     await sleep(600);
 
-    const newGroups = distributeGroups();
+    const newGroups = distributeGroups(forcedAssignments);
     setGroups(newGroups);
     setAnimationPhase('distributing');
 
@@ -308,7 +343,7 @@ export default function AdminRandomizeGroups({ isDark = true }) {
             <div className="flex flex-col items-center mb-12">
               <div className="relative">
                 <button
-                  onClick={handleRandomize}
+                  onClick={(e) => handleRandomize(e)}
                   disabled={isAnimating}
                   className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${isAnimating ? 'scale-95' : 'hover:scale-110'}`}
                   style={{
