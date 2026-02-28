@@ -28,8 +28,8 @@ export default function AdminMembres({ isDark }) {
     prenom: '',
     tel: '',
     email: '',
-    dateN: '',
-    ville: '',
+    dateN: '1989-01-01',
+    ville: 'walo',
     points: 0,
     admin: false,
     img: ''
@@ -51,7 +51,7 @@ export default function AdminMembres({ isDark }) {
   }, []);
 
   const handleAddMembre = () => {
-    setFormData({ nom: '', prenom: '', tel: '', email: '', dateN: '', ville: '', points: 0, admin: false, img: '' });
+    setFormData({ nom: '', prenom: '', tel: '', email: '', dateN: '1989-01-01', ville: 'walo', points: 0, admin: false, img: '' });
     setImagePreview(null);
     setShowAddModal(true);
     setEditingMembre(null);
@@ -210,14 +210,10 @@ export default function AdminMembres({ isDark }) {
       const { key, direction } = sortConfig;
       let valA = a[key];
       let valB = b[key];
-      if (key === 'nom' || key === 'prenom' || key === 'ville') {
+      if (key === 'nom' || key === 'prenom') {
         valA = (valA || '').toLowerCase();
         valB = (valB || '').toLowerCase();
         return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      }
-      if (key === 'dateN') {
-        valA = new Date(valA || 0).getTime();
-        valB = new Date(valB || 0).getTime();
       }
       if (key === 'points') {
         valA = Number(valA) || 0;
@@ -242,8 +238,6 @@ export default function AdminMembres({ isDark }) {
     { key: 'points', label: 'Points' },
     { key: 'nom', label: 'Nom' },
     { key: 'prenom', label: 'Prénom' },
-    { key: 'ville', label: 'Ville' },
-    { key: 'dateN', label: 'Date de naissance' },
   ];
 
   return (
@@ -407,7 +401,7 @@ export default function AdminMembres({ isDark }) {
                               }
                             </div>
                             <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {membre.email} • {membre.tel} • {membre.ville} • {new Date(membre.dateN).toLocaleDateString('FR-fr')}
+                              {membre.email} • {membre.tel}
                             </div>
                           </div>
                         </div>
@@ -477,19 +471,8 @@ export default function AdminMembres({ isDark }) {
                   <input type="tel" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}
                     className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} border focus:outline-none focus:ring-2 focus:ring-purple-500`} />
                 </div>
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Ville</label>
-                  <input type="text" value={formData.ville} onChange={(e) => setFormData({ ...formData, ville: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} border focus:outline-none focus:ring-2 focus:ring-purple-500`} />
-                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Date de Naissance</label>
-                  <input type="date" value={(formData.dateN ? new Date(formData.dateN) : new Date()).toISOString().split("T")[0]}
-                    onChange={(e) => setFormData({ ...formData, dateN: e.target.value })}
-                    className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} border focus:outline-none focus:ring-2 focus:ring-purple-500`} />
-                </div>
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Points</label>
                   <input type="number" value={formData.points} onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
@@ -644,7 +627,6 @@ export default function AdminMembres({ isDark }) {
                         <div className={`font-bold text-sm ${isPresent ? 'text-emerald-400' : isDark ? 'text-white' : 'text-gray-900'}`}>
                           {membre.prenom} {membre.nom}
                         </div>
-                        <div className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>{membre.ville}</div>
                       </div>
 
                       {/* Points + badge */}
@@ -700,4 +682,5 @@ export default function AdminMembres({ isDark }) {
       )}
     </div>
   );
+
 }
