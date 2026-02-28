@@ -471,8 +471,6 @@ export default function AdminMembres({ isDark }) {
                   <input type="tel" value={formData.tel} onChange={(e) => setFormData({ ...formData, tel: e.target.value })}
                     className={`w-full px-4 py-2 rounded-lg ${isDark ? 'bg-gray-800 text-white border-gray-700' : 'bg-gray-100 text-gray-900 border-gray-300'} border focus:outline-none focus:ring-2 focus:ring-purple-500`} />
                 </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className={`block text-sm font-bold mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Points</label>
                   <input type="number" value={formData.points} onChange={(e) => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })}
@@ -684,3 +682,4 @@ export default function AdminMembres({ isDark }) {
   );
 
 }
+
