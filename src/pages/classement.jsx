@@ -237,7 +237,7 @@ export default function AdminRanking({ isDark }) {
                         <div className={`px-4 pb-3 pt-1 space-y-2 transition-all duration-300 ${isDark ? 'bg-purple-900/10' : 'bg-purple-50/60'}`}>
                             <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                               <Phone className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
-                              <span>{session ? member.tel <EyeOff size={18} className={isDark ? "text-white" : "text-black"} />}</span>
+                              <span>{session ? member.tel : <EyeOff size={18} className={isDark ? "text-white" : "text-black"} />}</span>
                             </div>
                           <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                             <Mail className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
@@ -292,6 +292,7 @@ export default function AdminRanking({ isDark }) {
     </div>
   );
 }
+
 
 
 
