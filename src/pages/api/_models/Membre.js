@@ -24,11 +24,11 @@ const membreSchema = new mongoose.Schema({
   },
   dateN: {
     type: Date,
-    required: true,
+    required: false,
   },
   ville: {
     type: String,
-    required: true,
+    required: false,
   },
   points: {
     type: Number,
@@ -48,4 +48,5 @@ const membreSchema = new mongoose.Schema({
 });
 
 const Membre = mongoose.models.Membre || mongoose.model("Membre", membreSchema);
+
 export default Membre;
