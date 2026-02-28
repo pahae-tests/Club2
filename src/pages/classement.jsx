@@ -112,11 +112,15 @@ export default function AdminRanking({ isDark }) {
             <div className={`hidden sm:grid grid-cols-15 gap-4 px-6 py-5 font-bold text-sm uppercase tracking-wider border-b ${
               isDark ? 'bg-gradient-to-r from-purple-900/30 to-cyan-900/30 border-white/10 text-gray-300' : 'bg-gradient-to-r from-purple-100/50 to-cyan-100/50 border-gray-200 text-gray-700'
             }`}>
-              <div className="col-span-2 text-center">Pos</div>
+              {/* <div className="col-span-2 text-center">Pos</div>
               <div className="col-span-4 text-center">Membre</div>
               <div className="col-span-3 text-center">Téléphone</div>
               <div className="col-span-3 text-center">Email</div>
-              <div className="col-span-2 text-center">Points</div>
+              <div className="col-span-2 text-center">Points</div> */}
+              <div className="col-span-2 text-center">Pos</div>
+              <div className="col-span-5 text-center">Membre</div>
+              <div className="col-span-4 text-center">Email</div>
+              <div className="col-span-3 text-center">Points</div>
             </div>
 
             {/* Mobile header */}
@@ -296,6 +300,7 @@ export default function AdminRanking({ isDark }) {
     </div>
   );
 }
+
 
 
 
