@@ -84,7 +84,7 @@ export default function AdminRanking({ isDark }) {
               const medalGrad = getMedalColor(pos);
               return (
                 <div key={member._id} className="flex flex-col items-center gap-1 flex-1 max-w-[110px]">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-offset-1 ${isDark ? 'ring-offset-gray-900' : 'ring-offset-white'} bg-gradient-to-br ${medalGrad}`}>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-offset-1 ${isDark ? 'ring-offset-gray-900' : 'ring-offset-white'} bg-gradient-to-br ${medalGrad}`}>
                     {pos === 1 ? <Crown className="w-4 h-4" /> : pos}
                   </div>
                   <div className={`w-10 h-10 rounded-full overflow-hidden ring-2 ${pos === 1 ? 'ring-yellow-400' : isDark ? 'ring-gray-600' : 'ring-gray-300'}`}>
@@ -292,3 +292,4 @@ export default function AdminRanking({ isDark }) {
     </div>
   );
 }
+
