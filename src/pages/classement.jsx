@@ -112,15 +112,11 @@ export default function AdminRanking({ isDark }) {
             <div className={`hidden sm:grid grid-cols-15 gap-4 px-6 py-5 font-bold text-sm uppercase tracking-wider border-b ${
               isDark ? 'bg-gradient-to-r from-purple-900/30 to-cyan-900/30 border-white/10 text-gray-300' : 'bg-gradient-to-r from-purple-100/50 to-cyan-100/50 border-gray-200 text-gray-700'
             }`}>
-              {/* <div className="col-span-2 text-center">Pos</div>
+              <div className="col-span-2 text-center">Pos</div>
               <div className="col-span-4 text-center">Membre</div>
               <div className="col-span-3 text-center">Téléphone</div>
               <div className="col-span-3 text-center">Email</div>
-              <div className="col-span-2 text-center">Points</div> */}
-              <div className="col-span-2 text-center">Pos</div>
-              <div className="col-span-5 text-center">Membre</div>
-              <div className="col-span-4 text-center">Email</div>
-              <div className="col-span-3 text-center">Points</div>
+              <div className="col-span-2 text-center">Points</div>
             </div>
 
             {/* Mobile header */}
@@ -168,14 +164,12 @@ export default function AdminRanking({ isDark }) {
                           </div>
                         </div>
                       </div>
-                      {session &&
-                        <div className="col-span-3 flex justify-center">
+                      <div className="col-span-3 flex justify-center">
                           <span className={`flex gap-2 items-center text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                             <Phone className="w-3.5 h-3.5 flex-shrink-0" />
-                            {member.tel}
+                            {session ? member.tel : "Private"}
                           </span>
                         </div>
-                      }
                       <div className="col-span-3 flex justify-center">
                         <span className={`flex gap-2 items-center text-xs truncate max-w-full ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                           <Mail className="w-3.5 h-3.5 flex-shrink-0" />
@@ -241,12 +235,10 @@ export default function AdminRanking({ isDark }) {
                       {/* Expanded details */}
                       {isExpanded && (
                         <div className={`px-4 pb-3 pt-1 space-y-2 transition-all duration-300 ${isDark ? 'bg-purple-900/10' : 'bg-purple-50/60'}`}>
-                          {session &&
                             <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                               <Phone className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
-                              <span>{member.tel}</span>
+                              <span>{session ? member.tel : "Private"}</span>
                             </div>
-                          }
                           <div className={`flex items-center gap-2 text-xs ${isDark ? 'text-gray-300' : 'text-gray-600'}`}>
                             <Mail className="w-3.5 h-3.5 text-cyan-500 flex-shrink-0" />
                             <span className="truncate">{member.email}</span>
