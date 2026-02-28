@@ -67,7 +67,7 @@ export default function Header({ isDark, setIsDark }) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-2">
-            {navItems.map((item) => (
+            {navItems.filter(it => session || it.name !== "Randomizer").map((item) => (
               <a
                 key={item.path}
                 href={item.path}
@@ -182,6 +182,7 @@ export default function Header({ isDark, setIsDark }) {
   );
 
 }
+
 
 
 
