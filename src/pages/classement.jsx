@@ -83,7 +83,7 @@ export default function AdminRanking({ isDark }) {
               const heights = ['h-24', 'h-32', 'h-20'];
               const medalGrad = getMedalColor(pos);
               return (
-                <div key={member.id} className="flex flex-col items-center gap-1 flex-1 max-w-[110px]">
+                <div key={member._id} className="flex flex-col items-center gap-1 flex-1 max-w-[110px]">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white ring-2 ring-offset-1 ${isDark ? 'ring-offset-gray-900' : 'ring-offset-white'} bg-gradient-to-br ${medalGrad}`}>
                     {pos === 1 ? <Crown className="w-4 h-4" /> : pos}
                   </div>
@@ -135,12 +135,12 @@ export default function AdminRanking({ isDark }) {
                 const isTopThree = position <= 3;
                 const isFourth = position === 4;
                 const isLastThree = position >= membres.length - 2;
-                const isExpanded = expandedId === member.id;
+                const isExpanded = expandedId === member._id;
                 const medalGrad = getMedalColor(position);
                 const borderCls = getBorderClass(position, membres.length);
 
                 return (
-                  <div key={member.id} className={`${borderCls}`} style={{ animation: `fadeIn 0.5s ease-out ${index * 0.07}s both` }}>
+                  <div key={member._id} className={`${borderCls}`} style={{ animation: `fadeIn 0.5s ease-out ${index * 0.07}s both` }}>
                     {/* Desktop row */}
                     <div className={`hidden sm:grid grid-cols-15 gap-4 px-6 py-4 items-center transition-all duration-300 cursor-pointer group ${
                       isDark ? 'hover:bg-gradient-to-r hover:from-purple-900/20 hover:to-cyan-900/20' : 'hover:bg-gradient-to-r hover:from-purple-50 hover:to-cyan-50'
@@ -188,7 +188,7 @@ export default function AdminRanking({ isDark }) {
                     {/* Mobile row */}
                     <div className="sm:hidden">
                       <button
-                        onClick={() => toggleExpand(member.id)}
+                        onClick={() => toggleExpand(member._id)}
                         className={`w-full grid grid-cols-12 gap-2 px-3 py-3 items-center text-left transition-all duration-300 ${
                           isDark ? 'hover:bg-purple-900/20 active:bg-purple-900/30' : 'hover:bg-purple-50 active:bg-purple-100'
                         }`}
