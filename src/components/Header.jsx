@@ -131,7 +131,7 @@ export default function Header({ isDark, setIsDark }) {
         >
           <nav className={`py-4 space-y-2 border-t ${isDark ? 'border-white/10' : 'border-gray-200/50'
             }`}>
-            {navItems.filter(it => session || (!session && it.name !== "Randomizer").map((item, index) => (
+            {navItems.filter(it => session || it.name !== "Randomizer").map((item, index) => (
               <a
                 key={item.path}
                 href={item.path}
@@ -182,5 +182,6 @@ export default function Header({ isDark, setIsDark }) {
   );
 
 }
+
 
 
