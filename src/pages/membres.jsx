@@ -401,7 +401,7 @@ export default function AdminMembres({ isDark }) {
                               }
                             </div>
                             <div className={`text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
-                              {membre.email} • {membre.tel}
+                              {membre.email} {session && "•"} {session && membre.tel}
                             </div>
                           </div>
                         </div>
@@ -682,4 +682,5 @@ export default function AdminMembres({ isDark }) {
   );
 
 }
+
 
