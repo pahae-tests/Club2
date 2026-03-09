@@ -40,7 +40,6 @@ export default function AdminRandomizeGroups({ isDark = true }) {
   const [visibleCards, setVisibleCards] = useState(new Set());
   const [shuffleIcon, setShuffleIcon] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const groupRefs = useRef([]);
 
   const bureauMembers = BUREAU_MEMBRES;
 
@@ -84,6 +83,7 @@ export default function AdminRandomizeGroups({ isDark = true }) {
 
   const distributeGroups = (forcedAssignments = []) => {
     const shuffled = [...selectedRegular].sort(() => Math.random() - 0.5);
+
     const g = bureauMembers.map((b, i) => ({
       id: i,
       leader: b,
@@ -92,7 +92,7 @@ export default function AdminRandomizeGroups({ isDark = true }) {
       name: `Groupe ${i + 1}`
     }));
 
-    // Handle forced assignments first
+    // Step 1: Handle forced assignments first, track which members are forced
     const forcedMemberIds = new Set();
     for (const { memberPrenom, memberNom, leaderNom } of forcedAssignments) {
       const targetGroup = g.find(gr => gr.leader.nom === leaderNom);
@@ -100,17 +100,24 @@ export default function AdminRandomizeGroups({ isDark = true }) {
         (!memberNom || m.nom === memberNom) &&
         (!memberPrenom || m.prenom === memberPrenom)
       );
-      if (targetGroup && member) {
+      if (targetGroup && member && !forcedMemberIds.has(String(member._id))) {
         targetGroup.members.push(member);
         forcedMemberIds.add(String(member._id));
       }
     }
 
-    // Distribute remaining members normally
+    // Step 2: Distribute remaining members using a balanced approach
+    // Always pick the group with the fewest members to keep counts equal
     const remaining = shuffled.filter(m => !forcedMemberIds.has(String(m._id)));
-    remaining.forEach((m, i) => {
-      g[i % g.length].members.push(m);
-    });
+
+    for (const member of remaining) {
+      // Find the group(s) with the minimum number of members
+      const minCount = Math.min(...g.map(gr => gr.members.length));
+      const candidates = g.filter(gr => gr.members.length === minCount);
+      // Pick a random one among the candidates to avoid always filling in order
+      const target = candidates[Math.floor(Math.random() * candidates.length)];
+      target.members.push(member);
+    }
 
     return g;
   };
